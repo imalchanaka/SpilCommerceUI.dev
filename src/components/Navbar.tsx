@@ -23,17 +23,17 @@ const Navbar = () => {
 
   return (
     <nav className="bg-white shadow-lg">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
+      <div className="container px-4 mx-auto">
+        <div className="flex items-center justify-between h-16">
           <Link to="/" className="text-xl font-bold text-gray-800">
-            Spil Online Store
+            Spil Online Stores
           </Link>
 
           <div className="flex items-center space-x-4">
             <Link to="/cart" className="relative">
-              <ShoppingCart className="h-6 w-6 text-gray-600" />
+              <ShoppingCart className="w-6 h-6 text-gray-600" />
               {items.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-red-500 rounded-full -top-2 -right-2">
                   {items.length}
                 </span>
               )}
@@ -56,12 +56,12 @@ const Navbar = () => {
                   </Link>
                 )}
                 <div className="flex items-center space-x-2">
-                  <User className="h-6 w-6 text-gray-600" />
+                  <User className="w-6 h-6 text-gray-600" />
                   <span className="text-gray-600">{user.name}</span>
                 </div>
                 <button
                   onClick={() => handleLogoutClick()}
-                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+                  className="px-4 py-2 text-white bg-red-500 rounded-md hover:bg-red-600"
                 >
                   Logout
                 </button>
@@ -69,7 +69,7 @@ const Navbar = () => {
             ) : (
               <button
                 onClick={() => handleLoginClick()}
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
               >
                 Login
               </button>
