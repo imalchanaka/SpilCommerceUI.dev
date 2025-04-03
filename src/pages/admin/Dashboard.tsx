@@ -8,14 +8,14 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
-import { productData } from "./data";
+//import { productData } from "./data";
 
 const Dashboard = () => {
   // Mock data - replace with API calls
   const stats = {
     totalSales: 15789.45,
     totalOrders: 156,
-    totalProducts: productData.length,
+  //  totalProducts: productData.length,
     totalUsers: 2,
   };
 
@@ -38,10 +38,10 @@ const Dashboard = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+      <h1 className="mb-8 text-3xl font-bold">Admin Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="p-6 bg-white rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500">Total Sales</p>
@@ -51,13 +51,13 @@ const Dashboard = () => {
             </div>
             <DollarSign className="w-8 h-8 text-green-500" />
           </div>
-          <div className="mt-4 flex items-center text-sm text-green-500">
+          <div className="flex items-center mt-4 text-sm text-green-500">
             <TrendingUp className="w-4 h-4 mr-1" />
             <span>12% increase</span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="p-6 bg-white rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500">Total Orders</p>
@@ -65,29 +65,29 @@ const Dashboard = () => {
             </div>
             <ShoppingBag className="w-8 h-8 text-blue-500" />
           </div>
-          <div className="mt-4 flex items-center text-sm text-blue-500">
+          <div className="flex items-center mt-4 text-sm text-blue-500">
             <Clock className="w-4 h-4 mr-1" />
             <span>24 this week</span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="p-6 bg-white rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500">Products</p>
-              <p className="text-2xl font-bold">{stats.totalProducts}</p>
+              {/* <p className="text-2xl font-bold">{stats.totalProducts}</p> */}
             </div>
             <Package className="w-8 h-8 text-purple-500" />
           </div>
           <Link
             to="/admin/products"
-            className="mt-4 text-sm text-purple-500 flex items-center"
+            className="flex items-center mt-4 text-sm text-purple-500"
           >
             Manage products →
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="p-6 bg-white rounded-lg shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500">Users</p>
@@ -97,7 +97,7 @@ const Dashboard = () => {
           </div>
           <Link
             to="/admin/users"
-            className="mt-4 text-sm text-orange-500 flex items-center"
+            className="flex items-center mt-4 text-sm text-orange-500"
           >
             View all users →
           </Link>
@@ -112,7 +112,7 @@ const Dashboard = () => {
           {recentOrders.map((order) => (
             <div
               key={order.id}
-              className="p-6 flex items-center justify-between"
+              className="flex items-center justify-between p-6"
             >
               <div>
                 <p className="font-semibold">Order #{order.id}</p>

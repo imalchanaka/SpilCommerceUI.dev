@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.1",
+    "axios": "^1.8.4",
     "igniteui-react": "^18.8.0",
     "igniteui-react-charts": "^18.8.0",
     "igniteui-react-core": "^18.8.0",

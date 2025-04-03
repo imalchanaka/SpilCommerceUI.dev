@@ -1,76 +1,152 @@
-import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
-import ProductForm from '../../components/ProductForm';
-import { Product, ProductFormData } from '../../types';
-import { productData } from './data';
+import React, { useState, useEffect } from "react";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import ProductForm from "../../components/ProductForm";
+import { Product, ProductFormData } from "../../types";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { fetchProducts } from "../../store/slices/productSlice";
+
+import {
+  createProduct,
+  updateProduct,
+  DeleteProduct,
+  getProductById,
+} from "../../pages/admin/api/ProductAPI";
 
 const Products = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Mock data - replace with API calls
-  const [products, setProducts] = useState<Product[]>(productData
-  //   [
-  //   {
-  //     id: '1',
-  //     name: 'Modern Desk Lamp',
-  //     description: 'Sleek LED desk lamp with adjustable brightness',
-  //     price: 49.99,
-  //     stock: 50,
-  //     image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&q=80&w=400',
-  //   },
-  //   {
-  //     id: '2',
-  //     name: 'Wireless Keyboard',
-  //     description: 'Ergonomic wireless keyboard with backlight',
-  //     price: 79.99,
-  //     stock: 30,
-  //     image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=400',
-  //   },
-  // ]
-);
+  const dispatch = useAppDispatch();
+  const { products, loading, error } = useAppSelector(
+    (state) => state.products
+  );
 
-  const handleAddProduct = (data: ProductFormData) => {
-    // Mock API call - replace with actual API
-    const newProduct: Product = {
-      id: Date.now().toString(),
-      ...data,
-    };
-    setProducts([...products, newProduct]);
-    setShowForm(false);
-  };
+  useEffect(() => {
+    dispatch(fetchProducts());
+  }, [dispatch]);
 
-  const handleEditProduct = (data: ProductFormData) => {
-    if (!editingProduct) return;
-    
-    // Mock API call - replace with actual API
-    const updatedProducts = products.map(product =>
-      product.id === editingProduct.id ? { ...product, ...data } : product
-    );
-    setProducts(updatedProducts);
-    setEditingProduct(null);
-  };
+  //   try {
+  //     const response = await fetch('http://localhost:5289/api/Product', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify(data),
+  //     });
+  //     if (!response.ok) {
+  //       throw new Error('Failed to add product');
+  //     }
+  //     dispatch(fetchProducts()); // Refresh the list
+  //     setShowForm(false);
+  //   } catch (error) {
+  //     console.error('Error adding product:', error);
+  //     alert('Failed to add product. Please try again.');
+  //   }
+  // };
 
-  const handleDeleteProduct = (id: string) => {
-    // Mock API call - replace with actual API
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      setProducts(products.filter(product => product.id !== id));
+  const handleAddProduct = async (data: ProductFormData) => {
+    try {
+      const response = await createProduct(data);
+
+      if (!response.isOk) {
+        throw new Error(response.message || "Failed to add product");
+      }
+
+      dispatch(fetchProducts()); // Refresh the list
+      setShowForm(false);
+
+      // Optional: Show success message
+      alert("Product added successfully!");
+    } catch (error) {
+      console.error("Error adding product:", error);
+      //alert(error.message || 'Failed to add product. Please try again.');
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleEditProduct = async (data: ProductFormData) => {
+    if (!editingProduct) return;
+
+    try {
+      // First fetch the latest data from the database
+      const currentProduct = await getProductById(editingProduct.id);
+
+      // Merge the existing data with the new changes
+      const updatedData = {
+        ...currentProduct,
+        ...data,
+        id: editingProduct.id,
+      };
+
+      const response = await updateProduct(editingProduct.id, updatedData);
+
+      if (!response.isOk) {
+        throw new Error(response.message || "Failed to update product");
+      }
+
+      dispatch(fetchProducts()); // Refresh the product list
+      setShowForm(false);
+      setEditingProduct(null);
+
+      // Optional success message
+      alert("Product updated successfully!");
+    } catch (error) {
+      console.error("Error updating product:", error);
+      alert(
+        error instanceof Error ? error.message : "Failed to update product"
+      );
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) {
+      return;
+    }
+
+    try {
+      const response = await DeleteProduct(id);
+
+      if (!response.isOk) {
+        let errorMessage = response.message || "Validation failed";
+
+        // If your API returns errors in a specific format, you can parse them here
+        if (response.data?.errors) {
+          errorMessage += ":\n";
+          for (const [field, errors] of Object.entries(response.data.errors)) {
+            errorMessage += `• ${field}: ${(errors as string[]).join(", ")}\n`;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      dispatch(fetchProducts());
+      alert("Product deleted successfully!");
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete product. Please try again."
+      );
+    }
+  };
+
+  const filteredProducts = products.filter(
+    (product) =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Products</h1>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          className="flex items-center px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Product
@@ -85,7 +161,7 @@ const Products = () => {
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
+              className="w-full py-2 pl-10 pr-4 border rounded-lg"
             />
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
@@ -93,33 +169,48 @@ const Products = () => {
 
         <div className="divide-y">
           {filteredProducts.map((product) => (
-            <div key={product.id} className="p-6 flex items-center">
+            <div key={product.id} className="flex items-center p-6">
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-16 h-16 object-cover rounded-md"
+                className="object-cover w-16 h-16 rounded-md"
               />
               <div className="flex-1 ml-6">
                 <h3 className="text-lg font-semibold">{product.name}</h3>
                 <p className="text-gray-600">${product.price}</p>
-                <p className="text-gray-500 text-sm">{product.description}</p>
+                <p className="text-sm text-gray-500">{product.description}</p>
               </div>
-              <div className="text-right mr-6">
+              <div className="mr-6 text-right">
                 <p className="font-semibold">Stock</p>
-                <p className={`${product.stock < 10 ? 'text-red-500' : 'text-gray-600'}`}>
+                <p
+                  className={`${
+                    product.stock < 10 ? "text-red-500" : "text-gray-600"
+                  }`}
+                >
                   {product.stock} units
                 </p>
               </div>
               <div className="flex space-x-2">
-                <button
+                {/* <button
                   onClick={() => setEditingProduct(product)}
-                  className="p-2 text-blue-500 hover:bg-blue-50 rounded-md"
+                  className="p-2 text-blue-500 rounded-md hover:bg-blue-50"
+                >
+                  <Pencil className="w-5 h-5" />
+                </button> */}
+
+                <button
+                  onClick={async () => {
+                    const productData = await getProductById(product.id);
+                    setEditingProduct(product);
+                  }}
+                  className="p-2 text-blue-500 rounded-md hover:bg-blue-50"
                 >
                   <Pencil className="w-5 h-5" />
                 </button>
+
                 <button
                   onClick={() => handleDeleteProduct(product.id)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-md"
+                  className="p-2 text-red-500 rounded-md hover:bg-red-50"
                 >
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -137,7 +228,7 @@ const Products = () => {
             setEditingProduct(null);
           }}
           initialData={editingProduct || undefined}
-          title={editingProduct ? 'Edit Product' : 'Add New Product'}
+          title={editingProduct ? "Edit Product" : "Add New Product"}
         />
       )}
     </div>
