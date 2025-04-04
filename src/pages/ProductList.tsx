@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { addToCart } from '../store/slices/cartSlice';
+import { addToCart, updateQuantity } from '../store/slices/cartSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchProducts } from '../store/slices/productSlice';
-import { Product } from '../types';
+
 
 const ProductList = () => {
   const dispatch = useAppDispatch();
   const { products, loading, error } = useAppSelector((state) => state.products);
+  const { items: cartItems } = useAppSelector((state) => state.cart);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
 
   useEffect(() => {
     dispatch(fetchProducts());
   }, [dispatch]);
+
+  const getProductQuantity = (productId: string): number => {
+    const cartItem = cartItems.find((item: any) => item.product.id === productId);
+    return cartItem ? cartItem.quantity : 0;
+  };
 
   const filteredProducts = products
     .filter(product => 
@@ -57,29 +63,62 @@ const ProductList = () => {
         </div>
       </div>
 
+      {/* Products Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredProducts.map(product => (
-          <div key={product.id} className="overflow-hidden bg-white rounded-lg shadow-md">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="object-cover w-full h-48"
-            />
-            <div className="p-4">
-              <h3 className="mb-2 text-lg font-semibold">{product.name}</h3>
-              <p className="mb-4 text-gray-600">{product.description}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xl font-bold">${product.price}</span>
-                <button
-                  onClick={() => dispatch(addToCart(product))}
-                  className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
-                >
-                  Add to Cart
-                </button>
+        {filteredProducts.map(product => {
+          const quantity = getProductQuantity(product.id);
+          return (
+            <div key={product.id} className="overflow-hidden bg-white rounded-lg shadow-md">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="object-cover w-full h-48"
+              />
+              <div className="p-4">
+                <h3 className="mb-2 text-lg font-semibold">{product.name}</h3>
+                <p className="mb-4 text-gray-600">{product.description}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xl font-bold">${product.price}</span>
+                  <div className="flex items-center gap-2">
+                    {quantity > 0 && (
+                      <>
+                        <button
+                          onClick={() => dispatch(updateQuantity({
+                            productId: product.id,
+                            quantity: quantity - 1
+                          }))}
+                          className="flex items-center justify-center w-8 h-8 border rounded-md"
+                        >
+                          -
+                        </button>
+                        <span className="px-2 font-medium">{quantity}</span>
+                      </>
+                    )}
+                    <button
+                      onClick={() => dispatch(addToCart(product))}
+                      className={`px-4 py-2 text-white rounded-md ${
+                        quantity > 0 ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
+                      }`}
+                    >
+                      {quantity > 0 ? 'Add More' : 'Add to Cart'}
+                    </button>
+                    {quantity > 0 && (
+                      <button
+                        onClick={() => dispatch(updateQuantity({
+                          productId: product.id,
+                          quantity: quantity + 1
+                        }))}
+                        className="flex items-center justify-center w-8 h-8 border rounded-md"
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
