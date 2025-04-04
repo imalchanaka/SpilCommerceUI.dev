@@ -21,6 +21,8 @@ import AdminUsers from "./pages/admin/Users";
 import LoginForm from "./components/LoginForm";
 import "primereact/resources/themes/lara-light-blue/theme.css";
 import SalesOrderUI from "./pages/SalesOrderUI";
+import Contact from "./pages/contact.tsx";
+import AboutUs from "./pages/About.tsx";
 
 const PrivateRoute = ({
   children,
@@ -56,6 +58,8 @@ function App() {
               <Route path="/login" element={<LoginForm />} />
               <Route path="/" element={<ProductList />} />
               <Route path="/salesOrder" element={<SalesOrderUI />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/contact" element={<Contact />} />
 
               {/* Protected User Routes */}
               <Route
