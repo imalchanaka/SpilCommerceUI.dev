@@ -25,11 +25,25 @@ const Navbar = () => {
     <nav className="bg-white shadow-lg">
       <div className="container px-4 mx-auto">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="text-xl font-bold text-gray-800">
-            Spil Online Stores
+          <Link
+            to="/"
+            className="text-xl font-bold text-gray-800 flex items-center"
+          >
+            <img
+              src="https://www.spillabs.com/wp-content/uploads/2020/10/Spil-Logo_White-WEB_-JPEG-removebg-preview.png"
+              alt="spillabs"
+              className="h-10 w-auto mr-2"
+            />
+            <span className="text-gray-800 font-semibold"></span>
           </Link>
 
           <div className="flex items-center space-x-4">
+            <Link to="/about" className="text-gray-600 hover:text-gray-800">
+              About Us
+            </Link>
+            <Link to="/contact" className="text-gray-600 hover:text-gray-800">
+              Contact Us
+            </Link>
             <Link to="/cart" className="relative">
               <ShoppingCart className="w-6 h-6 text-gray-600" />
               {items.length > 0 && (
