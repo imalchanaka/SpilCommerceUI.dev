@@ -3,7 +3,9 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store";
 import { MapPin, Phone, User, Hash } from "lucide-react";
 import { Toast } from "primereact/toast";
+
 import { classNames } from "primereact/utils";
+import { creatOrder } from "../pages/admin/api/ProductAPI";
 
 interface ValidationErrors {
   customerName?: string;
@@ -33,6 +35,7 @@ const Checkout = () => {
     country: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const total = items.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
@@ -67,16 +70,9 @@ const Checkout = () => {
         error = "Customer name is required";
       } else if (field === "customerName" && customerName.length < 2) {
         error = "Name must be at least 2 characters long";
-      } else if (field === "customerCode" && !customerCode) {
+      } else if (field === "customerCode" && !validateCustomerCode(customerCode)) {
         error = "Customer code is required";
-      }
-      //  else if (
-      //   field === "customerCode" &&
-      //   !validateCustomerCode(customerCode)
-      // ) {
-      //   error = "Invalid format. Use CUST-XXX format";
-      // }
-      else if (field === "email" && !email) {
+      } else if (field === "email" && !email) {
         error = "Email is required";
       } else if (field === "email" && !validateEmail(email)) {
         error = "Invalid email format";
@@ -105,9 +101,36 @@ const Checkout = () => {
     return error;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const prepareOrderPayload = () => {
+    const now = new Date();
+    const orderTime = now.toISOString();
+
+    return {
+      customerName,
+      customerCode,
+      email,
+      phoneNumber: phone,
+      streetAddress: deliveryAddress.street,
+      city: deliveryAddress.city,
+      state: deliveryAddress.state,
+      zipCode: deliveryAddress.zipCode,
+      country: deliveryAddress.country,
+      sendInvoiceToEmail: sendInvoice,
+      orderTime, // Adding current time to the order
+      orderItemsList: items.map((item, index) => ({
+        orderId: index + 1,
+        productName: item.product.name,
+        productCode: "70",
+        unitPrice: item.product.price,
+        quantity: item.quantity,
+      })),
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
+    setIsSubmitting(true);
 
     const isValid =
       [
@@ -126,22 +149,56 @@ const Checkout = () => {
       validateZipCode(deliveryAddress.zipCode) &&
       validateCustomerCode(customerCode);
 
-    if (isValid) {
-      toast.current?.show({
-        severity: "success",
-        summary: "Success",
-        detail: "Order submitted successfully",
-        life: 3000,
-      });
-      // Handle checkout logic here
-      console.log("Form is valid, proceeding with checkout");
-    } else {
+    if (!isValid) {
       toast.current?.show({
         severity: "error",
         summary: "Error",
         detail: "Please fill in all required fields correctly",
         life: 3000,
       });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const orderPayload = prepareOrderPayload();
+      console.log("Submitting order:", orderPayload);
+
+      const response = await creatOrder(orderPayload);
+
+      toast.current?.show({
+        severity: "success",
+        summary: "Success",
+        detail: "Order submitted successfully",
+        life: 3000,
+      });
+
+      // Reset form after successful submission
+      setCustomerName("");
+      setCustomerCode("");
+      setEmail("");
+      setPhone("");
+      setDeliveryAddress({
+        street: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+      });
+      setSendInvoice(false);
+      setSubmitted(false);
+
+      console.log("Order creation response:", response);
+    } catch (error) {
+      console.error("Order submission failed:", error);
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "Failed to submit order. Please try again.",
+        life: 3000,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -159,14 +216,14 @@ const Checkout = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <Toast ref={toast} />
-      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+      <h1 className="mb-8 text-3xl font-bold">Checkout</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <div>
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+          <div className="p-6 mb-6 bg-white rounded-lg shadow-md">
+            <h2 className="mb-4 text-xl font-semibold">Order Summary</h2>
             {items.length === 0 ? (
-              <p className="text-gray-500 italic">Your cart is empty</p>
+              <p className="italic text-gray-500">Your cart is empty</p>
             ) : (
               items.map((item) => (
                 <div
@@ -182,7 +239,7 @@ const Checkout = () => {
                 </div>
               ))
             )}
-            <div className="mt-4 pt-4 border-t">
+            <div className="pt-4 mt-4 border-t">
               <div className="flex justify-between text-xl font-semibold">
                 <span>Total:</span>
                 <span>${total.toFixed(2)}</span>
@@ -193,17 +250,17 @@ const Checkout = () => {
 
         <div className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">
+            <div className="p-6 bg-white rounded-lg shadow-md">
+              <h2 className="mb-4 text-xl font-semibold">
                 Contact Information
               </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
                     Customer Name
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <User className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
                     <input
                       type="text"
                       value={customerName}
@@ -218,11 +275,11 @@ const Checkout = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
                     Customer Code
                   </label>
                   <div className="relative">
-                    <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Hash className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
                     <input
                       type="text"
                       value={customerCode}
@@ -237,7 +294,7 @@ const Checkout = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
                     Email Address
                   </label>
                   <input
@@ -253,11 +310,11 @@ const Checkout = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
                     Phone Number
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Phone className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
                     <input
                       type="tel"
                       value={phone}
@@ -273,15 +330,15 @@ const Checkout = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Delivery Address</h2>
+            <div className="p-6 bg-white rounded-lg shadow-md">
+              <h2 className="mb-4 text-xl font-semibold">Delivery Address</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
                     Street Address
                   </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <MapPin className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
                     <input
                       type="text"
                       value={deliveryAddress.street}
@@ -302,7 +359,7 @@ const Checkout = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
                       City
                     </label>
                     <input
@@ -322,7 +379,7 @@ const Checkout = () => {
                     </small>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
                       State
                     </label>
                     <input
@@ -345,7 +402,7 @@ const Checkout = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
                       ZIP Code
                     </label>
                     <input
@@ -365,7 +422,7 @@ const Checkout = () => {
                     </small>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
                       Country
                     </label>
                     <input
@@ -388,14 +445,14 @@ const Checkout = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="p-6 bg-white rounded-lg shadow-md">
               <div className="mb-6">
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={sendInvoice}
                     onChange={(e) => setSendInvoice(e.target.checked)}
-                    className="rounded border-gray-300"
+                    className="border-gray-300 rounded"
                   />
                   <span className="ml-2">Send invoice to email</span>
                 </label>
@@ -403,10 +460,10 @@ const Checkout = () => {
 
               <button
                 type="submit"
-                className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 transition-colors duration-200 disabled:bg-blue-300 disabled:cursor-not-allowed"
-                disabled={items.length === 0}
+                className="w-full py-3 text-white transition-colors duration-200 bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                disabled={items.length === 0 || isSubmitting}
               >
-                Complete Order
+                {isSubmitting ? "Processing..." : "Complete Order"}
               </button>
             </div>
           </form>
@@ -417,353 +474,3 @@ const Checkout = () => {
 };
 
 export default Checkout;
-
-// import React, { useState } from "react";
-// import { useSelector } from "react-redux";
-// import { RootState } from "../store";
-// import { MapPin, Phone, User, Hash } from "lucide-react";
-
-// const Checkout = () => {
-//   const { items } = useSelector((state: RootState) => state.cart);
-//   const [customerName, setCustomerName] = useState("");
-//   const [customerCode, setCustomerCode] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [phone, setPhone] = useState("");
-//   const [sendInvoice, setSendInvoice] = useState(false);
-//   const [deliveryAddress, setDeliveryAddress] = useState({
-//     street: "",
-//     city: "",
-//     state: "",
-//     zipCode: "",
-//     country: "",
-//   });
-
-//   const total = items.reduce(
-//     (sum, item) => sum + item.product.price * item.quantity,
-//     0
-//   );
-
-//   const handleSubmit = (e: React.FormEvent) => {
-//     e.preventDefault();
-//     // Handle checkout logic here
-//   };
-
-//   return (
-//     <div className="max-w-4xl mx-auto">
-//       <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-
-//       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-//         <div>
-//           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-//             <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-//             {items.length === 0 ? (
-//               <p className="text-gray-500 italic">Your cart is empty</p>
-//             ) : (
-//               items.map((item) => (
-//                 <div
-//                   key={item.product.id}
-//                   className="flex justify-between py-2"
-//                 >
-//                   <span>
-//                     {item.product.name} x {item.quantity}
-//                   </span>
-//                   <span>
-//                     ${(item.product.price * item.quantity).toFixed(2)}
-//                   </span>
-//                 </div>
-//               ))
-//             )}
-//             <div className="mt-4 pt-4 border-t">
-//               <div className="flex justify-between text-xl font-semibold">
-//                 <span>Total:</span>
-//                 <span>${total.toFixed(2)}</span>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-
-//         <div className="space-y-6">
-//           <div className="bg-white rounded-lg shadow-md p-6">
-//             <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
-//             <form onSubmit={handleSubmit}>
-//               <div className="space-y-4">
-//                 <div>
-//                   <label className="block text-sm font-medium text-gray-700 mb-2">
-//                     Customer Name
-//                   </label>
-//                   <div className="relative">
-//                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-//                     <input
-//                       type="text"
-//                       value={customerName}
-//                       onChange={(e) => setCustomerName(e.target.value)}
-//                       className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                       required
-//                       placeholder="John Doe"
-//                     />
-//                   </div>
-//                 </div>
-
-//                 <div>
-//                   <label className="block text-sm font-medium text-gray-700 mb-2">
-//                     Customer Code
-//                   </label>
-//                   <div className="relative">
-//                     <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-//                     <input
-//                       type="text"
-//                       value={customerCode}
-//                       onChange={(e) => setCustomerCode(e.target.value)}
-//                       className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                       required
-//                       placeholder="CUST-123"
-//                     />
-//                   </div>
-//                 </div>
-
-//                 <div>
-//                   <label className="block text-sm font-medium text-gray-700 mb-2">
-//                     Email Address
-//                   </label>
-//                   <input
-//                     type="email"
-//                     value={email}
-//                     onChange={(e) => setEmail(e.target.value)}
-//                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                     required
-//                     placeholder="your@email.com"
-//                   />
-//                 </div>
-
-//                 <div>
-//                   <label className="block text-sm font-medium text-gray-700 mb-2">
-//                     Phone Number
-//                   </label>
-//                   <div className="relative">
-//                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-//                     <input
-//                       type="tel"
-//                       value={phone}
-//                       onChange={(e) => setPhone(e.target.value)}
-//                       className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                       required
-//                       placeholder="+1 (555) 000-0000"
-//                     />
-//                   </div>
-//                 </div>
-//               </div>
-//             </form>
-//           </div>
-
-//           <div className="bg-white rounded-lg shadow-md p-6">
-//             <h2 className="text-xl font-semibold mb-4">Delivery Address</h2>
-//             <div className="space-y-4">
-//               <div>
-//                 <label className="block text-sm font-medium text-gray-700 mb-2">
-//                   Street Address
-//                 </label>
-//                 <div className="relative">
-//                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-//                   <input
-//                     type="text"
-//                     value={deliveryAddress.street}
-//                     onChange={(e) =>
-//                       setDeliveryAddress({
-//                         ...deliveryAddress,
-//                         street: e.target.value,
-//                       })
-//                     }
-//                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                     required
-//                     placeholder="123 Main St"
-//                   />
-//                 </div>
-//               </div>
-
-//               <div className="grid grid-cols-2 gap-4">
-//                 <div>
-//                   <label className="block text-sm font-medium text-gray-700 mb-2">
-//                     City
-//                   </label>
-//                   <input
-//                     type="text"
-//                     value={deliveryAddress.city}
-//                     onChange={(e) =>
-//                       setDeliveryAddress({
-//                         ...deliveryAddress,
-//                         city: e.target.value,
-//                       })
-//                     }
-//                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                     required
-//                     placeholder="City"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-medium text-gray-700 mb-2">
-//                     State
-//                   </label>
-//                   <input
-//                     type="text"
-//                     value={deliveryAddress.state}
-//                     onChange={(e) =>
-//                       setDeliveryAddress({
-//                         ...deliveryAddress,
-//                         state: e.target.value,
-//                       })
-//                     }
-//                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                     required
-//                     placeholder="State"
-//                   />
-//                 </div>
-//               </div>
-
-//               <div className="grid grid-cols-2 gap-4">
-//                 <div>
-//                   <label className="block text-sm font-medium text-gray-700 mb-2">
-//                     ZIP Code
-//                   </label>
-//                   <input
-//                     type="text"
-//                     value={deliveryAddress.zipCode}
-//                     onChange={(e) =>
-//                       setDeliveryAddress({
-//                         ...deliveryAddress,
-//                         zipCode: e.target.value,
-//                       })
-//                     }
-//                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                     required
-//                     placeholder="12345"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-medium text-gray-700 mb-2">
-//                     Country
-//                   </label>
-//                   <input
-//                     type="text"
-//                     value={deliveryAddress.country}
-//                     onChange={(e) =>
-//                       setDeliveryAddress({
-//                         ...deliveryAddress,
-//                         country: e.target.value,
-//                       })
-//                     }
-//                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                     required
-//                     placeholder="Country"
-//                   />
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-
-//           <div className="bg-white rounded-lg shadow-md p-6">
-//             <div className="mb-6">
-//               <label className="flex items-center">
-//                 <input
-//                   type="checkbox"
-//                   checked={sendInvoice}
-//                   onChange={(e) => setSendInvoice(e.target.checked)}
-//                   className="rounded border-gray-300"
-//                 />
-//                 <span className="ml-2">Send invoice to email</span>
-//               </label>
-//             </div>
-
-//             <button
-//               type="submit"
-//               className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 transition-colors duration-200"
-//             >
-//               Complete Order
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Checkout;
-
-// // import React, { useState } from 'react';
-// // import { useSelector } from 'react-redux';
-// // import { RootState } from '../store';
-
-// // const Checkout = () => {
-// //   const { items } = useSelector((state: RootState) => state.cart);
-// //   const [email, setEmail] = useState('');
-// //   const [sendInvoice, setSendInvoice] = useState(false);
-
-// //   const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-
-// //   const handleSubmit = (e: React.FormEvent) => {
-// //     e.preventDefault();
-// //     // Handle checkout logic here
-// //   };
-
-// //   return (
-// //     <div className="max-w-4xl mx-auto">
-// //       <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-
-// //       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-// //         <div className="bg-white rounded-lg shadow-md p-6">
-// //           <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-// //           {items.map((item) => (
-// //             <div key={item.product.id} className="flex justify-between py-2">
-// //               <span>{item.product.name} x {item.quantity}</span>
-// //               <span>${(item.product.price * item.quantity).toFixed(2)}</span>
-// //             </div>
-// //           ))}
-// //           <div className="mt-4 pt-4 border-t">
-// //             <div className="flex justify-between text-xl font-semibold">
-// //               <span>Total:</span>
-// //               <span>${total.toFixed(2)}</span>
-// //             </div>
-// //           </div>
-// //         </div>
-
-// //         <div className="bg-white rounded-lg shadow-md p-6">
-// //           <h2 className="text-xl font-semibold mb-4">Invoice Details</h2>
-// //           <form onSubmit={handleSubmit}>
-// //             <div className="mb-4">
-// //               <label className="block text-sm font-medium text-gray-700 mb-2">
-// //                 Email Address
-// //               </label>
-// //               <input
-// //                 type="email"
-// //                 value={email}
-// //                 onChange={(e) => setEmail(e.target.value)}
-// //                 className="w-full px-3 py-2 border rounded-md"
-// //                 required
-// //               />
-// //             </div>
-
-// //             <div className="mb-6">
-// //               <label className="flex items-center">
-// //                 <input
-// //                   type="checkbox"
-// //                   checked={sendInvoice}
-// //                   onChange={(e) => setSendInvoice(e.target.checked)}
-// //                   className="rounded border-gray-300"
-// //                 />
-// //                 <span className="ml-2">Send invoice to email</span>
-// //               </label>
-// //             </div>
-
-// //             <button
-// //               type="submit"
-// //               className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600"
-// //             >
-// //               Complete Order
-// //             </button>
-// //           </form>
-// //         </div>
-// //       </div>
-// //     </div>
-// //   );
-// // };
-
-// // export default Checkout;

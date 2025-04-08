@@ -51,12 +51,15 @@ function App() {
   return (
     <Provider store={store}>
       <Router>
+      <Routes>
+      <Route path="/login" element={<LoginForm />} />
+      </Routes>
         <div className="min-h-screen bg-gray-50">
           <Navbar />
           <div className="container px-4 py-8 mx-auto">
             <Routes>
               {/* Public Routes */}
-              <Route path="/login" element={<LoginForm />} />
+            
               <Route path="/" element={<ProductList />} />
               <Route path="/salesOrder" element={<SalesOrderUI />} />
               <Route path="/about" element={<AboutUs />} />

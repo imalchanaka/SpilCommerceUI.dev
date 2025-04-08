@@ -44,3 +44,25 @@ export async function getCategories() {
     return response;
     
 }
+export async function creatOrder(payload: any) {
+    const suffix = `/api/Order`;
+    const response = await post(suffix, payload); // Pass the payload here
+    console.log("Order creation response:", response);
+    return response;
+}
+
+
+export async function getAllOders() {
+    const suffix = `/api/Order/GetAllOders`;
+    const response = await get(suffix);
+    console.log("Products Oder response:", response);
+    return response;
+    
+}
+
+export async function updateStatusOrder(payload: any) {
+    const suffix = `/api/Order`;
+    const response = await put(suffix, payload); // Pass the payload here
+    console.log("Product Status Update response:", response);
+    return response;
+}

@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef  } from "react";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import ProductForm from "../../components/ProductForm";
 import { Product, ProductFormData } from "../../types";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { fetchProducts } from "../../store/slices/productSlice";
+
+import { Toast } from "primereact/toast";
+                
+
 
 import {
   createProduct,
@@ -12,7 +16,10 @@ import {
   getProductById,
 } from "../../pages/admin/api/ProductAPI";
 
+
 const Products = () => {
+
+  const toast = useRef<Toast>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -22,9 +29,17 @@ const Products = () => {
     (state) => state.products
   );
 
+// Initialize state with localStorage value
+const [addedProductCount, setAddedProductCount] = useState(() => {
+  const saved = localStorage.getItem('addedProductCount');
+  return saved ? parseInt(saved) : 0;
+});
   useEffect(() => {
     dispatch(fetchProducts());
-  }, [dispatch]);
+    localStorage.setItem('addedProductCount', addedProductCount.toString());
+  }, [dispatch,addedProductCount]);
+
+  console.log("yuuu",addedProductCount);
 
   //   try {
   //     const response = await fetch('http://localhost:5289/api/Product', {
@@ -52,12 +67,22 @@ const Products = () => {
       if (!response.isOk) {
         throw new Error(response.message || "Failed to add product");
       }
-
-      dispatch(fetchProducts()); // Refresh the list
+      else{
+        toast.current?.show({
+          severity: "success",
+          summary: "Success",
+          detail: "Product Add successfully",
+          life: 5000,
+        });
+      }
+    setTimeout(() => {
+      dispatch(fetchProducts()); 
       setShowForm(false);
-
-      // Optional: Show success message
-      alert("Product added successfully!");
+      setAddedProductCount(prev => prev + 1); 
+    }, 1000);
+     
+   
+      
     } catch (error) {
       console.error("Error adding product:", error);
       //alert(error.message || 'Failed to add product. Please try again.');
@@ -68,6 +93,8 @@ const Products = () => {
     if (!editingProduct) return;
 
     try {
+      console.log("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh");
+      
       // First fetch the latest data from the database
       const currentProduct = await getProductById(editingProduct.id);
 
@@ -82,14 +109,26 @@ const Products = () => {
 
       if (!response.isOk) {
         throw new Error(response.message || "Failed to update product");
+      } else {
+        
+        toast.current?.show({
+          severity: "warn",
+          summary: "Success",
+          detail: "Product Update successfully",
+          life: 5000,
+        });
+
+        setTimeout(() => {
+          dispatch(fetchProducts());
+          setShowForm(false);
+          setEditingProduct(null);
+        }, 1000); // 100ms delay to ensure toast appears
       }
 
-      dispatch(fetchProducts()); // Refresh the product list
-      setShowForm(false);
-      setEditingProduct(null);
-
+      
       // Optional success message
-      alert("Product updated successfully!");
+    
+    
     } catch (error) {
       console.error("Error updating product:", error);
       alert(
@@ -98,18 +137,61 @@ const Products = () => {
     }
   };
 
+ 
+  
+
   const handleDeleteProduct = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) {
-      return;
-    }
-
     try {
+      // Show confirmation dialog
+      const confirmDelete = await new Promise((resolve) => {
+        toast.current?.show({
+          severity: 'warn',
+          summary: 'Confirm Delete',
+          detail: 'Are you sure you want to delete this product?',
+          life: 0, // Persistent until manually closed
+          sticky: true,
+          content: (
+            <div className="flex flex-col gap-2">
+              <div className="text-sm">{'Are you sure you want to delete this product'}</div>
+              <div className="flex gap-2 mt-2">
+                <button
+                  className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600"
+                  onClick={() => {
+                    toast.current?.clear();
+                    resolve(true);
+                  }}
+                >
+                  Yes, Delete
+                </button>
+                <button
+                  className="p-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                  onClick={() => {
+                    toast.current?.clear();
+                    resolve(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )
+        });
+      });
+  
+      if (!confirmDelete) return;
+  
+      // Show processing toast
+      toast.current?.show({
+        severity: 'info',
+        summary: 'Processing',
+        detail: 'Deleting product...',
+        life: 3000 // Persistent until manually closed
+      });
+  
       const response = await DeleteProduct(id);
-
+  
       if (!response.isOk) {
         let errorMessage = response.message || "Validation failed";
-
-        // If your API returns errors in a specific format, you can parse them here
         if (response.data?.errors) {
           errorMessage += ":\n";
           for (const [field, errors] of Object.entries(response.data.errors)) {
@@ -118,18 +200,31 @@ const Products = () => {
         }
         throw new Error(errorMessage);
       }
-
-      dispatch(fetchProducts());
-      alert("Product deleted successfully!");
+  
+      // Clear current toast and show success
+   
+  
+      // Refresh product list after a small delay
+      setTimeout(() => {
+        dispatch(fetchProducts());
+      }, 100);
+  
     } catch (error) {
-      console.error("Delete error:", error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Failed to delete product. Please try again."
-      );
+      toast.current?.clear();
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: error instanceof Error ? error.message : "Failed to delete product",
+        life: 5000,
+      });
     }
   };
+
+
+
+
+
+
 
   const filteredProducts = products.filter(
     (product) =>
@@ -142,6 +237,7 @@ const Products = () => {
 
   return (
     <div className="p-6">
+      <Toast ref={toast} position="top-right" />
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Products</h1>
         <button

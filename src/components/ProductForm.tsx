@@ -31,6 +31,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     image: "",
     categoryId: 1, // Default to first category
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,11 +58,34 @@ const ProductForm: React.FC<ProductFormProps> = ({
     dispatch(fetchCategories());
   }, [dispatch]);
 
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsSubmitting(true);
+  //   setError(null);
+
+  //   try {
+  //     await onSubmit(formData);
+  //     onClose();
+  //   } catch (err) {
+  //     setError(err instanceof Error ? err.message : "Failed to submit product");
+  //     console.error("Error submitting product:", err);
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Add validation for price and stock
+    if (formData.price <= 1 || formData.stock <= 1) {
+      setError("Price and stock must be greater than 1");
+      return;
+    }
+  
     setIsSubmitting(true);
     setError(null);
-
+  
     try {
       await onSubmit(formData);
       onClose();
@@ -232,7 +256,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <button
               type="submit"
               className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:bg-blue-300"
-              disabled={isSubmitting || isLoadingCategories}
+              disabled={isSubmitting || isLoadingCategories || formData.price <= 1 || formData.stock <0}
             >
               {isSubmitting
                 ? "Processing..."

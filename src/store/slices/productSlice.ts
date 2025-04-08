@@ -5,7 +5,7 @@ import { getProducts, getCategories } from "../../pages/admin/api/ProductAPI"; /
 
 interface ProductState {
   products: Product[];
-  categories: Category[]; // Add categories array
+  categories: Category[]; 
   loading: boolean;
   categoriesLoading: boolean; // Add separate loading state for categories
   error: string | null;
