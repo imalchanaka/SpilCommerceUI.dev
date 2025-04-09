@@ -1,3 +1,5 @@
+import { numberToString } from "igniteui-react-core";
+
 export interface Product {
   id: string;
   name: string;
@@ -32,7 +34,11 @@ export interface LoginCredentials {
   email: string;
   password: string;
 }
-
+export interface SignupCredentials {
+  name: string;
+  email: string;
+  password: string;
+}
 export interface ProductFormData {
   name: string;
   description: string;

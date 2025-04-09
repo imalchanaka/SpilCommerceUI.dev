@@ -1,114 +1,183 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, User, X } from 'lucide-react';
 import { setUser } from '../store/slices/authSlice';
-import { LoginCredentials } from '../types';
+import { LoginCredentials, SignupCredentials } from '../types';
 
 const LoginForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [credentials, setCredentials] = useState<LoginCredentials>({
+  const [isLogin, setIsLogin] = useState(true);
+  const [credentials, setCredentials] = useState<LoginCredentials | SignupCredentials>({
     email: '',
     password: '',
+    name: '',
   });
   const [error, setError] = useState('');
+  
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      // Mock login - replace with actual API call
-      if (credentials.email === 'admin@example.com' && credentials.password === 'admin') {
+      if (isLogin) {
+        // Login logic
+        if (credentials.email === 'admin@example.com' && credentials.password === 'admin') {
+          dispatch(setUser({
+            id: '1',
+            email: credentials.email,
+            name: 'Admin User',
+            role: 'admin'
+          }));
+          navigate('/admin');
+        } else if (credentials.email === 'user@example.com' && credentials.password === 'user') {
+          dispatch(setUser({
+            id: '2',
+            email: credentials.email,
+            name: 'Regular User',
+            role: 'user'
+          }));
+          navigate('/');
+        } else {
+          throw new Error('Invalid credentials');
+        }
+      } else {
+        // Signup logic
+        // In a real app, you would call your signup API here
+        // For demo, we'll just log the user in directly
         dispatch(setUser({
-          id: '1',
+          id: '3',
           email: credentials.email,
-          name: 'Admin User',
-          role: 'admin'
-        }));
-        navigate('/admin');
-      } else if (credentials.email === 'user@example.com' && credentials.password === 'user') {
-        dispatch(setUser({
-          id: '2',
-          email: credentials.email,
-          name: 'Regular User',
+          name:'New User',
           role: 'user'
         }));
         navigate('/');
-      } else {
-        throw new Error('Invalid credentials');
       }
+   
     } catch (err) {
-      setError('Invalid email or password: ');
+      setError(isLogin ? 'Invalid email or password' : 'Error creating account. Please try again.');
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-              {error}
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">Email address</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
-                  value={credentials.email}
-                  onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
-                  value={credentials.password}
-                  onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
+  const toggleAuthMode = () => {
+    setIsLogin(!isLogin);
+    setError('');
+    setCredentials({
+      email: '',
+      password: '',
+      name: '',
+    });
+  };
 
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Sign in
-            </button>
+  return (
+    <>
+     
+
+      
+     <div className="fixed inset-0 bg-gray-50 flex items-center justify-center z-50 p-4">
+     <div className="w-full max-w-md mx-auto">
+
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+                {isLogin ? 'Welcome Back!' : 'Create an Account'}
+              </h2>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-4">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleAuthSubmit} className="space-y-4">
+                {!isLogin && (
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Full Name"
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      //value={credentials.name}
+                      onChange={(e) => setCredentials({ ...credentials, name: e.target.value })}
+                      required={!isLogin}
+                    />
+                  </div>
+                )}
+
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={credentials.email}
+                    onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={credentials.password}
+                    onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+                    required
+                    minLength={6}
+                  />
+                </div>
+
+                {isLogin && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                      onClick={() => {
+                        // Add your forgot password logic here
+                        alert('Password reset link will be sent to your email!');
+                      }}
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  {isLogin ? 'Sign In' : 'Sign Up'}
+                </button>
+              </form>
+
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  onClick={toggleAuthMode}
+                >
+                  {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Sign In'}
+                </button>
+              </div>
+
+         
+            </div>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+     
+    </>
   );
 };
 
 export default LoginForm;
+
+

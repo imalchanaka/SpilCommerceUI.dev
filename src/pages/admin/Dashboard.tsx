@@ -8,8 +8,9 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
-import { useAppSelector } from "../../store/hooks";
-import { getAllOders } from "../admin/api/ProductAPI";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { getAllOders, getProducts } from "../admin/api/ProductAPI";
+import { fetchProducts } from "../../store/slices/productSlice";
 
 // Define types for API response and orders
 interface ApiResponse<T> {
@@ -47,9 +48,19 @@ const Dashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const dispatch = useAppDispatch();
+  
+
+useEffect(() => {
+    dispatch(fetchProducts());
+  }, [dispatch]);
+
   useEffect(() => {
+    
     const fetchOrders = async () => {
+
       try {
+    
         const response = await getAllOders() as unknown as ApiResponse<Order[]>;
         console.log("Orders response:", response);
         

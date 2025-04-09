@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { Link, Search } from 'lucide-react';
 import { addToCart, updateQuantity } from '../store/slices/cartSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchProducts } from '../store/slices/productSlice';
+import { useNavigate } from "react-router-dom";
+import { getProductById } from './admin/api/ProductAPI';
+import { Product} from "../types";
 
 
 const ProductList = () => {
@@ -11,6 +14,24 @@ const ProductList = () => {
   const { items: cartItems } = useAppSelector((state) => state.cart);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
+  const [getProduct, setGetProduct] = useState<Product | null>(null);
+
+  const navigate = useNavigate();
+  const handleClick = async(id: string) => {
+    try {
+     // const productDetails = await getProductById(getProduct.id);
+      
+      // Option 1: Save to state manager (e.g., Redux, Context) if needed later
+      // dispatch(setSelectedProduct(productDetails));
+
+      // Option 2: Or pass via navigation state
+      navigate(`/ProductDetails/${id}`);
+    } catch (error) {
+      console.error("Failed to fetch product:", error);
+    }
+  };
+
+
 
   useEffect(() => {
     dispatch(fetchProducts());
@@ -35,6 +56,7 @@ const ProductList = () => {
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
+ 
   
   return (
     <div>
@@ -68,7 +90,7 @@ const ProductList = () => {
         {filteredProducts.map(product => {
           const quantity = getProductQuantity(product.id);
           return (
-            <div key={product.id} className="overflow-hidden bg-white rounded-lg shadow-md">
+            <div key={product.id} className="overflow-hidden bg-white rounded-lg shadow-md" onClick={() => handleClick(product.id)}>
               <img
                 src={product.image}
                 alt={product.name}
